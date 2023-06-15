@@ -1,0 +1,7 @@
+---
+
+# Bootstrap the node by making sure Python is installed
+- import_playbook: bootstrap.yaml
+
+# Perform the 'real' setup of the base image
+- import_playbook: base-settings.yaml
