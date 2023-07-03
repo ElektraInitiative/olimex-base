@@ -16,14 +16,6 @@ Ansible uses an [inventory](https://docs.ansible.com/ansible/latest/inventory_gu
 It can be a simple text file or a [dynamic inventory](https://docs.ansible.com/ansible/latest/inventory_guide/intro_dynamic_inventory.html) script that retrieves host information from external sources.
 
 The most basic inventory is actually just a file with a list of IP addresses and [FQDNs](https://en.wikipedia.org/wiki/Fully_qualified_domain_name).
-The following inventory is made up of 3 hosts:
-
-```ini
-192.168.0.1
-my.example.com
-fe80::6c09:a4e2:ae36:536b
-```
-
 Hosts in inventories can be grouped together, and it is possible to define variables for each host that can then be used within playbooks.
 
 ```ini
@@ -74,6 +66,7 @@ They provide flexibility and allow you to reuse playbooks across different envir
 One very common use-case for variables is in [templates for configuration files](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_templating.html).
 
 The following example tasks adds the user specified by the (built-in) variable `ansible_user` to the group `i2c`.
+
 ```yaml
 - name: Add the Ansible connection user to the i2c group.
   user:
