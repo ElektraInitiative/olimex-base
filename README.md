@@ -57,6 +57,24 @@ They are typically used to restart services or perform specific actions after a 
 Handlers ensure that actions are performed only when necessary.
 By default, the notified handlers run after all the tasks in a particular play have been completed. 
 
+In the following example, a task changes a configuration file and then notifies a handler to restart the Apache webserver.
+
+```yaml
+tasks:
+- name: Template configuration file
+  ansible.builtin.template:
+    src: template.j2
+    dest: /etc/foo.conf
+  notify:
+    - Restart apache
+
+handlers:
+  - name: Restart apache
+    ansible.builtin.service:
+      name: apache
+      state: restarted
+```
+
 ### Variables
 
 Ansible allows you to define [variables](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html#playbooks-variables) to customize the behavior of your playbooks and tasks.
