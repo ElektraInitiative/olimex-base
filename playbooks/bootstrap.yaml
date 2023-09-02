@@ -1,0 +1,17 @@
+---
+
+- name: Ensure a minimal Python environment is available for Ansible
+  hosts: all
+  become: yes
+  gather_facts: false
+  tasks:
+  
+    - name: Check for Python
+      raw: test -e /usr/bin/python3
+      changed_when: false
+      failed_when: false
+      register: check_python
+
+    - name: Install Python
+      raw: apt update && apt install -y python3-minimal
+      when: check_python.rc != 0

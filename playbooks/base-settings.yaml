@@ -1,0 +1,95 @@
+---
+
+- name: Setup Base Image
+  hosts: all
+  become: yes
+  tasks:
+    - name: Set timezone to Europe/Vienna
+      community.general.timezone:
+        name: Europe/Vienna
+        
+    - name: Upgrade system packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+    
+    - name: Check if a reboot is needed 
+      stat: 
+        path: /var/run/reboot-required 
+      register: reboot_required_file
+    
+    - name: Reboot the server due to updates
+      reboot:
+        msg: "Reboot initiated by Ansible due to kernel updates"
+        connect_timeout: 5
+        reboot_timeout: 300
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+        test_command: uptime
+      when: reboot_required_file.stat.exists
+
+    - name: Install Chrony for time synchronization 
+      apt:
+        update_cache: yes
+        name: chrony
+
+    - name: Set default locale
+      ansible.builtin.debconf:
+        name: locales
+        question: locales/default_environment_locale
+        value: de_AT.UTF-8
+        vtype: select
+
+    - name: Set locales to be generated
+      ansible.builtin.debconf:
+        name: locales
+        question: locales/locales_to_be_generated
+        value: de_AT.UTF-8 UTF-8, en_US.UTF-8 UTF-8
+        vtype: select
+
+    - name: Configure keyboard
+      debconf:
+        name: console-data
+        question: console-data/keymap/full
+        value: de-latin1-nodeadkeys
+        vtype: select
+
+    - name: Add user olimex to i2c group
+      user:
+        name: olimex
+        append: true
+        groups: i2c
+
+    - name: Set static IP
+      # Only execute this task when the variable target_static_ip has been found
+      when: target_static_ip is defined        
+      copy:
+        dest: /etc/network/interfaces.d/eth0
+        content: |
+            allow-hotplug eth0
+
+            iface eth0 inet static
+                address {{ target_static_ip }}
+                netmask 255.255.0.0
+                broadcast 10.0.255.255
+                gateway 10.0.0.1
+                dns-nameservers 10.0.0.1
+                dns-search fritz.box
+      # If the file contents on the host have changed, execute the reboot handler after this play has finished
+      notify: reboot
+
+  handlers:
+    - name: dpkg-reconfigure keyboard-configuration
+      command: /usr/sbin/dpkg-reconfigure -f noninteractive keyboard-configuration
+
+    # The reboot handler is a bit tricky in our case.
+    # As it is triggered when we change the IP, Ansible will have a hard time reconnecting to the host once it comes back up.
+    # This would normally lead to Ansible reporting a failure.
+    # To work around this, we ddfine this command as asynchronous, and tell Ansible via poll:0 that it is a fire-and-forget task.
+    # The drawback is that Ansible will not be able to verify wehther the host came back up successfully.
+    - name: reboot
+      shell: "sleep 1; reboot &"
+      args:
+        executable: /bin/bash
+      async: 100
+      poll: 0
